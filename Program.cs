@@ -17,4 +17,5 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHT
         .UseAzureMonitorExporter();
 }
 
+builder.Services.AddHttpClient();
 builder.Build().Run();
