@@ -23,6 +23,8 @@ public class PushoverNotifierFunction
     [Function(nameof(PushoverNotifierFunction))]
     public async Task Run([QueueTrigger("pushoverqueue")] QueueMessage message)
     {
+        logger.LogInformation($"Received message from queue: {message.MessageText}");
+
         if (string.IsNullOrEmpty(pushoverUserKey) || string.IsNullOrEmpty(pushoverAppToken))
         {
             string errorMessage = "Pushover user key or app token is not set in environment variables.";
@@ -50,6 +52,8 @@ public class PushoverNotifierFunction
             logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
+
+        logger.LogInformation($"Sending Pushover notification with title: '{title}', priority: {priority}, message: '{messageText}'");
 
         var values = new Dictionary<string, string>
         {
