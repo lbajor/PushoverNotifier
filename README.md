@@ -1,16 +1,16 @@
 # Pushover Notifier
 
-Funkcja Azure Functions odbierająca wiadomości z Azure Queue Storage i wysyłająca je jako powiadomienia Pushover. Projekt korzysta z .NET 10 i modelu isolated worker.
+An Azure Functions app that receives messages from Azure Queue Storage and sends them as Pushover notifications. The project uses .NET 10 and the isolated worker model.
 
-## Wymagania
+## Requirements
 
-- .NET 10 SDK i Azure Functions Core Tools v4.
-- Konto Pushover, klucz użytkownika oraz token aplikacji.
-- Azure Queue Storage lub uruchomiony lokalnie Azurite z usługą Queue.
+- .NET 10 SDK and Azure Functions Core Tools v4.
+- A Pushover account, user key, and application token.
+- Azure Queue Storage or a locally running Azurite instance with the Queue service.
 
-## Konfiguracja
+## Configuration
 
-Uzupełnij plik `local.settings.json` na potrzeby pracy lokalnej:
+For local development, configure `local.settings.json`:
 
 ```json
 {
@@ -18,55 +18,55 @@ Uzupełnij plik `local.settings.json` na potrzeby pracy lokalnej:
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "PUSHOVER_USER_KEY": "<klucz-uzytkownika>",
-    "PUSHOVER_APP_TOKEN": "<token-aplikacji>"
+    "PUSHOVER_USER_KEY": "<user-key>",
+    "PUSHOVER_APP_TOKEN": "<application-token>"
   }
 }
 ```
 
-`UseDevelopmentStorage=true` wymaga uruchomionego Azurite. Aby korzystać z konta Azure Storage, zamiast tego ustaw jego connection string. W środowisku Azure ustaw odpowiednie wartości w konfiguracji aplikacji Function App. Nie zapisuj prawdziwych kluczy ani connection stringów w repozytorium.
+`UseDevelopmentStorage=true` requires Azurite to be running. To use an Azure Storage account, set its connection string instead. In Azure, configure the corresponding values in the Function App settings. Do not store real keys or connection strings in the repository.
 
-Opcjonalnie ustaw `APPLICATIONINSIGHTS_CONNECTION_STRING`, aby włączyć eksport telemetrii OpenTelemetry do Azure Monitor.
+Optionally, set `APPLICATIONINSIGHTS_CONNECTION_STRING` to enable OpenTelemetry export to Azure Monitor.
 
-## Uruchomienie lokalne
+## Run locally
 
-1. Uruchom Azurite albo skonfiguruj dostęp do Azure Storage.
-2. W katalogu projektu uruchom:
+1. Start Azurite or configure access to Azure Storage.
+2. In the project directory, run:
 
    ```powershell
    func start
    ```
 
-3. Dodaj wiadomość do kolejki `pushoverqueue` w skonfigurowanym koncie Storage. Funkcja przetworzy ją i wyśle powiadomienie do Pushover.
+3. Add a message to the `pushoverqueue` queue in the configured Storage account. The function will process it and send a Pushover notification.
 
-## Format wiadomości
+## Message format
 
-Wiadomość kolejki musi zawierać obiekt JSON, na przykład:
+A queue message must contain a JSON object, for example:
 
 ```json
 {
-  "message": "Serwer jest niedostępny",
+  "message": "The server is unavailable",
   "title": "Alert",
   "priority": 1
 }
 ```
 
-| Pole | Wymagane | Opis |
+| Field | Required | Description |
 | --- | --- | --- |
-| `message` | Tak | Treść powiadomienia; nie może być pusta ani składać się wyłącznie z białych znaków. |
-| `title` | Nie | Tytuł; brak, `null` lub pusty tekst oznacza `Notification`. |
-| `priority` | Nie | Liczba całkowita: `-2`, `-1`, `0` lub `1`. Domyślnie `0`. |
+| `message` | Yes | Notification body; it must not be empty or contain only whitespace. |
+| `title` | No | Title; if omitted, `null`, or empty, it defaults to `Notification`. |
+| `priority` | No | Integer: `-2`, `-1`, `0`, or `1`. Defaults to `0`. |
 
-Nazwy pól nie rozróżniają wielkości liter. Priorytet `2` (emergency) nie jest obsługiwany przez tę funkcję.
+Field names are case-insensitive. Priority `2` (emergency) is not supported by this function.
 
-Trigger domyślnie oczekuje wiadomości zakodowanych w Base64. Klient wysyłający musi używać zgodnego kodowania; nie koduj wiadomości dwukrotnie, jeśli narzędzie lub SDK wykonuje to automatycznie. Można też skonfigurować `extensions.queues.messageEncoding` jako `none` w `host.json` i wysyłać zwykły JSON.
+The trigger expects Base64-encoded messages by default. The sender must use compatible encoding; do not encode messages twice if the tool or SDK does it automatically. Alternatively, set `extensions.queues.messageEncoding` to `none` in `host.json` and send plain JSON.
 
-## Błędy i ponowienia
+## Errors and retries
 
-Nieprawidłowy JSON, nieprawidłowe dane, brak konfiguracji oraz błędy wysyłki do Pushover powodują niepowodzenie wywołania. Azure Functions ponawia przetwarzanie; domyślnie po pięciu nieudanych próbach wiadomość trafia do kolejki `pushoverqueue-poison`. Monitoruj tę kolejkę i logi funkcji. Ponowienia mogą prowadzić do duplikatów, jeśli Pushover przyjął powiadomienie, ale funkcja nie otrzymała potwierdzenia.
+Invalid JSON, invalid data, missing configuration, and Pushover delivery errors cause the invocation to fail. Azure Functions retries processing; by default, after five failed attempts, the message is moved to the `pushoverqueue-poison` queue. Monitor that queue and the function logs. Retries may result in duplicate notifications if Pushover accepted a notification but the function did not receive confirmation.
 
-## Dokumentacja
+## Documentation
 
 - [Azure Queue Storage trigger](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-queue-trigger)
-- [Konfiguracja rozszerzenia Queue Storage](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-queue#hostjson-settings)
+- [Queue Storage extension configuration](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-queue#hostjson-settings)
 - [Pushover API](https://pushover.net/api)

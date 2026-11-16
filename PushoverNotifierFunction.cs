@@ -34,7 +34,7 @@ public class PushoverNotifierFunction
 
         var messageObject  = JsonSerializer.Deserialize<QueueNotification>(message.MessageText,
         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-        ?? throw new JsonException("Nieprawidłowa wiadomość kolejki.");
+        ?? throw new JsonException("Invalid queue message.");
 
         string title = string.IsNullOrWhiteSpace(messageObject.Title) ? "Notification" : messageObject.Title;
         string priority = (messageObject.Priority ?? 0).ToString();
